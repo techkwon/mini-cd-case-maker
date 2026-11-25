@@ -204,7 +204,8 @@ select { font: inherit; font-size: 15px; min-height: var(--tap); padding: 6px 8p
       cd: () => sampleArt(900, 900, "#6d28d9", "#1d0b3d", "CD", "예시 그림 · CD")
     };
     const keys = ["front", "inside", "back", "cd"];
-    const got = await Promise.all(keys.map(k => loadImg("sample/" + k + ".jpg")));
+    // 리센느 예시 그림은 claude.ai 비공개 페이지에만 같이 올림 (공개 깃허브 페이지에는 없음)
+    const got = (window.claude && window.claude.use) ? await Promise.all(keys.map(k => loadImg("sample/" + k + ".jpg"))) : keys.map(() => null);
     keys.forEach((k, i) => { state.img[k] = got[i] || fallback[k](); });
     if (got.every(Boolean)) {
       state.sampleName = "리센느 PULSE 예시";
