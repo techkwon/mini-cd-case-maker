@@ -152,7 +152,7 @@ select { font: inherit; font-size: 15px; min-height: var(--tap); padding: 6px 8p
 (() => {
   const A4 = { w: 210, h: 297 };
   // 시험 인쇄 반영(2026-11-26): 앞커버 42×42, 뒷면 = 왼쪽 접힘 5 + 그림 50 + 오른쪽 접힘 5+5(두 번), 세로 40
-  const DEFAULT_SIZE = { cw: 42, ch: 42, bh: 40, fL: 5, bw: 50, fR1: 5, fR2: 5, cdD: 39, hole: 5, bleed: 1 };
+  const DEFAULT_SIZE = { cw: 42, ch: 42, bh: 39, fL: 5, bw: 50, fR1: 5, fR2: 5, cdD: 39, hole: 5, bleed: 1 };
   const LIMIT = { cw: [15, 90], ch: [15, 120], bh: [15, 120], fL: [0, 20], bw: [15, 150], fR1: [0, 20], fR2: [0, 20], cdD: [15, 120], hole: [0, 40], bleed: [0, 3] };
   const ZMIN = 1, ZMAX = 4;
   const FONTS = [
@@ -586,7 +586,7 @@ select { font: inherit; font-size: 15px; min-height: var(--tap); padding: 6px 8p
       el("div", { class: "box" }, el("h3", {}, "여백", el("span", {}, "자르는 선 밖")),
         el("div", { class: "grid2" }, num("bleed", "그림을 더 그릴 폭"))),
       warnEl,
-      el("button", { class: "btn", onclick: () => { state.size = { ...DEFAULT_SIZE }; relayout(); buildControls(); render(); setStatus("크기를 기본값으로 되돌렸어요."); } }, "기본 크기로 되돌리기 (커버 42×42 · 뒷면 5+50+5+5 × 40 · CD 39)")
+      el("button", { class: "btn", onclick: () => { state.size = { ...DEFAULT_SIZE }; relayout(); buildControls(); render(); setStatus("크기를 기본값으로 되돌렸어요."); } }, "기본 크기로 되돌리기 (커버 42×42 · 뒷면 5+50+5+5 × 39 · CD 39)")
     ];
   }
   function applySize(key, input) {
