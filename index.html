@@ -172,6 +172,8 @@ select { font: inherit; font-size: 15px; min-height: var(--tap); padding: 6px 8p
       foldL2: { bg: "#1b1f2a", text: "SAMPLE · 예시 앨범", fg: "#ffffff", dir: "down" },
       foldR:  { bg: "#e9e4da", text: "SAMPLE · 예시 앨범", fg: "#1b1f2a", dir: "down" }
     },
+    // 케이스에 거꾸로 들어가는 칸: 인쇄할 때만 180° 돌려 찍는다 (편집 창은 케이스에서 보이는 그대로)
+    flip: { front: false, inside: false, back: true, cd: false },
     texts: [], nextId: 1,
     spinesTouched: false, sampleName: ""
   };
@@ -314,14 +316,29 @@ select { font: inherit; font-size: 15px; min-height: var(--tap); padding: 6px 8p
     g.fillStyle = v.fg; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(text, 0, size * 0.04);
     g.restore();
   }
-  function drawSheet(g, s, record) {
+  // 칸 내용(그림+글자)을 그린다. 뒤집기 칸은 자르는 칸 중심으로 180° 돌려 찍는다(upright=true면 안 돌림)
+  function drawPanel(g, k, s, record, upright) {
+    const flip = state.flip[k] && !upright, c = cutOf(k), cx = (c.x + c.w / 2) * s, cy = (c.y + c.h / 2) * s;
+    g.save();
+    if (flip) { clipPanel(g, k, s); g.translate(cx, cy); g.rotate(Math.PI); g.translate(-cx, -cy); }
+    if (state.img[k]) {
+      const b = boxOf(k), box = flip ? { x: 2 * (c.x + c.w / 2) - (b.x + b.w), y: 2 * (c.y + c.h / 2) - (b.y + b.h), w: b.w, h: b.h } : b;
+      if (k === "cd" && !flip) clipPanel(g, "cd", s);
+      coverDraw(g, state.img[k], box, state.fit[k], s);
+    }
+    g.restore();
+    g.save();
+    if (flip) { g.translate(cx, cy); g.rotate(Math.PI); g.translate(-cx, -cy); }
+    drawTexts(g, k, s, record && !flip);
+    g.restore();
+  }
+  function drawSheet(g, s, record, upright) {
     if (record) textBoxes.length = 0;
     const c = state.size;
     g.fillStyle = "#ffffff"; g.fillRect(0, 0, A4.w * s, A4.h * s);
-    for (const k of ["inside", "front", "back"]) { if (state.img[k]) coverDraw(g, state.img[k], boxOf(k), state.fit[k], s); drawTexts(g, k, s, record); }
+    for (const k of ["inside", "front", "back"]) drawPanel(g, k, s, record, upright);
     for (const k of Object.keys(L.strips)) drawStrip(g, k, s);
-    if (state.img.cd) { g.save(); clipPanel(g, "cd", s); coverDraw(g, state.img.cd, boxOf("cd"), state.fit.cd, s); g.restore(); }
-    drawTexts(g, "cd", s, record);
+    drawPanel(g, "cd", s, record, upright);
     const cd = L.cd;
     if (cd.hole > 0) { g.fillStyle = "#ffffff"; g.beginPath(); g.arc(cd.cx * s, cd.cy * s, cd.hole * s, 0, Math.PI * 2); g.fill(); }
     // 자르는 선
@@ -412,7 +429,7 @@ select { font: inherit; font-size: 15px; min-height: var(--tap); padding: 6px 8p
     stage.width = Math.round(w * dpr); stage.height = Math.round(h * dpr);
     const s = stage.width / stageRegion.w;
     sctx.setTransform(1, 0, 0, 1, 0, 0); sctx.translate(-stageRegion.x * s, -stageRegion.y * s);
-    drawSheet(sctx, s, true);
+    drawSheet(sctx, s, true, true);
     overlay(sctx, s, k, stageRegion, true);
     if (k === "spines" && L.strips[state.spineSel]) {
       const st = L.strips[state.spineSel].rect;
@@ -496,6 +513,12 @@ select { font: inherit; font-size: 15px; min-height: var(--tap); padding: 6px 8p
         el("button", { class: "btn", "aria-label": "그림 확대", onclick: () => { zoomBy(k, 1.15); render(); } }, el("span", { class: "ic" }, "+"), "크게"),
         el("button", { class: "btn", onclick: () => { Object.assign(state.fit[k], { z: 1, ox: 0, oy: 0 }); render(); } }, el("span", { class: "ic" }, "⟲"), "처음대로"),
         el("button", { class: "btn", onclick: () => { const f = state.fit[k]; f.ox = 0; f.oy = 0; render(); } }, el("span", { class: "ic" }, "◎"), "가운데")),
+      el("label", { class: "check" },
+        el("input", { type: "checkbox", id: "flip-" + k, checked: state.flip[k], onchange: e => { state.flip[k] = e.target.checked; buildControls(); render(); const f = document.getElementById("flip-" + k); if (f) f.focus(); } }),
+        "인쇄할 때 위아래 뒤집기 (케이스에 거꾸로 들어가는 칸)"),
+      el("p", { class: "hint" }, state.flip[k]
+        ? "편집 창은 케이스에 넣었을 때 보이는 모습이에요. 전체 배치와 PDF에는 거꾸로 찍혀요."
+        : "케이스에 넣었더니 그림이 거꾸로 보이면 위 칸을 켜요."),
       ...textControls(k),
       ...(k === "front" ? [el("button", { class: "btn", onclick: () => { applyFrontColor(); setStatus("앞면 그림 색으로 접는 부분을 칠했어요."); } }, "앞면 그림 색으로 접는 부분 칠하기")] : [])
     );
@@ -656,7 +679,10 @@ select { font: inherit; font-size: 15px; min-height: var(--tap); padding: 6px 8p
     if (state.sel !== h) select(h);
     if (e.pointerType === "mouse" && state.img[h]) { pdrag = { k: h, last: prevMm(e) }; preview.setPointerCapture(e.pointerId); }
   });
-  preview.addEventListener("pointermove", e => { if (!pdrag) return; const m = prevMm(e); panBy(pdrag.k, m.x - pdrag.last.x, m.y - pdrag.last.y); pdrag.last = m; render(); });
+  preview.addEventListener("pointermove", e => {
+    if (!pdrag) return; const m = prevMm(e), sg = state.flip[pdrag.k] ? -1 : 1;
+    panBy(pdrag.k, sg * (m.x - pdrag.last.x), sg * (m.y - pdrag.last.y)); pdrag.last = m; render();
+  });
   preview.addEventListener("pointerup", () => { pdrag = null; });
   preview.addEventListener("pointercancel", () => { pdrag = null; });
 
