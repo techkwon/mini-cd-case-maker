@@ -151,29 +151,30 @@ select { font: inherit; font-size: 15px; min-height: var(--tap); padding: 6px 8p
 <script>
 (() => {
   const A4 = { w: 210, h: 297 };
-  const DEFAULT_SIZE = { cw: 40, ch: 40, bw: 50, fL1: 5, fL2: 5, fR: 5, cdD: 39, hole: 5, bleed: 1 };
-  const LIMIT = { cw: [15, 90], ch: [15, 120], bw: [15, 150], fL1: [0, 20], fL2: [0, 20], fR: [0, 20], cdD: [15, 120], hole: [0, 40], bleed: [0, 3] };
+  // 시험 인쇄 반영(2026-11-26): 앞커버 42×42, 뒷면 = 왼쪽 접힘 5 + 그림 50 + 오른쪽 접힘 5+5(두 번), 세로 40
+  const DEFAULT_SIZE = { cw: 42, ch: 42, bh: 40, fL: 5, bw: 50, fR1: 5, fR2: 5, cdD: 39, hole: 5, bleed: 1 };
+  const LIMIT = { cw: [15, 90], ch: [15, 120], bh: [15, 120], fL: [0, 20], bw: [15, 150], fR1: [0, 20], fR2: [0, 20], cdD: [15, 120], hole: [0, 40], bleed: [0, 3] };
   const ZMIN = 1, ZMAX = 4;
   const FONTS = [
     ["IBM Plex Sans KR", "기본 고딕"], ["Black Han Sans", "굵은 제목체"], ["Nanum Myeongjo", "명조"],
     ["Gaegu", "손글씨"], ["Space Grotesk", "영문 고딕"]
   ];
   const PANEL_NAMES = { front: "앞면", inside: "안쪽 면", back: "뒷면", cd: "CD" };
-  const STRIP_NAMES = { foldL1: "왼쪽 접힘 ①", foldL2: "왼쪽 접힘 ②", foldR: "오른쪽 접힘" };
+  const STRIP_NAMES = { foldL: "왼쪽 접힘", foldR1: "오른쪽 접힘 ① (안쪽)", foldR2: "오른쪽 접힘 ② (바깥)" };
+  const STRIP_SIZE_KEY = { foldL: "fL", foldR1: "fR1", foldR2: "fR2" };
 
   const state = {
     size: { ...DEFAULT_SIZE },
-    sel: "front", spineSel: "foldL2", textSel: null, labels: true,
+    sel: "front", spineSel: "foldR1", textSel: null, labels: true,
     img: { front: null, inside: null, back: null, cd: null },
     mine: { front: false, inside: false, back: false, cd: false },
     fit: { front: { z: 1, ox: 0, oy: 0 }, inside: { z: 1, ox: 0, oy: 0 }, back: { z: 1, ox: 0, oy: 0 }, cd: { z: 1, ox: 0, oy: 0 } },
     strips: {
-      foldL1: { bg: "#1b1f2a", text: "SAMPLE · 예시 앨범", fg: "#ffffff", dir: "down" },
-      foldL2: { bg: "#1b1f2a", text: "SAMPLE · 예시 앨범", fg: "#ffffff", dir: "down" },
-      foldR:  { bg: "#e9e4da", text: "SAMPLE · 예시 앨범", fg: "#1b1f2a", dir: "down" }
+      foldL:  { bg: "#e9e4da", text: "SAMPLE · 예시 앨범", fg: "#1b1f2a", dir: "down" },
+      foldR1: { bg: "#1b1f2a", text: "SAMPLE · 예시 앨범", fg: "#ffffff", dir: "down" },
+      foldR2: { bg: "#1b1f2a", text: "SAMPLE · 예시 앨범", fg: "#ffffff", dir: "down" }
     },
-    // 케이스에 거꾸로 들어가는 칸: 인쇄할 때만 180° 돌려 찍는다 (편집 창은 케이스에서 보이는 그대로)
-    flip: { front: false, inside: false, back: true, cd: false },
+    flip: { front: false, inside: false, back: false, cd: false },
     texts: [], nextId: 1,
     spinesTouched: false, sampleName: ""
   };
@@ -183,19 +184,19 @@ select { font: inherit; font-size: 15px; min-height: var(--tap); padding: 6px 8p
   function layout(c) {
     const M = 20, TOP = 25, GAP = 20, SIDE = 18;
     const cover = { x: M, y: TOP, w: c.cw * 2, h: c.ch };
-    const backW = c.fL1 + c.fL2 + c.bw + c.fR;
-    let back = { x: cover.x + cover.w + SIDE, y: TOP, w: backW, h: c.ch };
-    let bottom = TOP + c.ch;
-    if (back.x + back.w > A4.w - 10) { back = { x: M, y: bottom + GAP, w: backW, h: c.ch }; bottom = back.y + c.ch; }
+    const backW = c.fL + c.bw + c.fR1 + c.fR2;
+    let back = { x: cover.x + cover.w + SIDE, y: TOP, w: backW, h: c.bh };
+    let bottom = TOP + Math.max(c.ch, c.bh);
+    if (back.x + back.w > A4.w - 10) { back = { x: M, y: TOP + c.ch + GAP, w: backW, h: c.bh }; bottom = back.y + c.bh; }
     const r = c.cdD / 2;
     const cd = { cx: M + r, cy: bottom + GAP + r, r, hole: c.hole / 2 };
     const b = c.bleed;
     const segs = [];
     let x = back.x;
-    if (c.fL1 > 0) { segs.push({ key: "foldL1", x, w: c.fL1 }); x += c.fL1; }
-    if (c.fL2 > 0) { segs.push({ key: "foldL2", x, w: c.fL2 }); x += c.fL2; }
+    if (c.fL > 0) { segs.push({ key: "foldL", x, w: c.fL }); x += c.fL; }
     segs.push({ key: "back", x, w: c.bw }); x += c.bw;
-    if (c.fR > 0) { segs.push({ key: "foldR", x, w: c.fR }); }
+    if (c.fR1 > 0) { segs.push({ key: "foldR1", x, w: c.fR1 }); x += c.fR1; }
+    if (c.fR2 > 0) { segs.push({ key: "foldR2", x, w: c.fR2 }); }
     segs.forEach((s, i) => { s.bleed = [i === 0 ? b : 0, i === segs.length - 1 ? b : 0, b, b]; });
     const panels = {
       inside: { rect: { x: cover.x, y: TOP, w: c.cw, h: c.ch }, bleed: [b, 0, b, b] },
@@ -207,7 +208,7 @@ select { font: inherit; font-size: 15px; min-height: var(--tap); padding: 6px 8p
       if (s.key === "back") panels.back = { rect, bleed: s.bleed }; else strips[s.key] = { rect, bleed: s.bleed };
     }
     const foldsBack = segs.slice(1).map(s => s.x);
-    const ruler = { x: back.y === TOP ? back.x : M + c.cdD + 20, y: back.y === TOP ? TOP + c.ch + 30 : cd.cy };
+    const ruler = { x: back.y === TOP ? back.x : M + c.cdD + 20, y: back.y === TOP ? TOP + Math.max(c.ch, c.bh) + 30 : cd.cy };
     const right = Math.max(cover.x + cover.w, back.x + back.w, cd.cx + r, ruler.x + 50);
     const lowest = Math.max(cd.cy + r + 8, back.y + back.h + 12, ruler.y + 6);
     const fits = right <= A4.w - 5 && lowest <= 280 && c.hole < c.cdD;
@@ -244,9 +245,9 @@ select { font: inherit; font-size: 15px; min-height: var(--tap); padding: 6px 8p
     keys.forEach((k, i) => { state.img[k] = got[i] || fallback[k](); });
     if (got.every(Boolean)) {
       state.sampleName = "리센느 PULSE 예시";
-      Object.assign(state.strips.foldL1, { bg: "#3a3f47", text: "RESCENE · PULSE", fg: "#ffffff" });
-      Object.assign(state.strips.foldL2, { bg: "#3a3f47", text: "RESCENE · PULSE", fg: "#ffffff" });
-      Object.assign(state.strips.foldR, { bg: "#eef0f3", text: "RESCENE · 4th Mini Album", fg: "#3a3f47" });
+      Object.assign(state.strips.foldL, { bg: "#eef0f3", text: "RESCENE · 4th Mini Album", fg: "#3a3f47" });
+      Object.assign(state.strips.foldR1, { bg: "#3a3f47", text: "RESCENE · PULSE", fg: "#ffffff" });
+      Object.assign(state.strips.foldR2, { bg: "#3a3f47", text: "RESCENE · PULSE", fg: "#ffffff" });
     }
   }
 
@@ -360,7 +361,7 @@ select { font: inherit; font-size: 15px; min-height: var(--tap); padding: 6px 8p
       g.fillStyle = "#8c8c8c"; g.textAlign = "center"; g.textBaseline = "alphabetic";
       g.font = `400 ${2.3 * s}px "IBM Plex Sans KR", sans-serif`;
       g.fillText(`앞커버 ${L.cover.w}×${L.cover.h}mm (왼쪽 = 안쪽 면, 오른쪽 = 앞면)`, (L.cover.x + L.cover.w / 2) * s, (L.cover.y + L.cover.h + 9) * s);
-      g.fillText(`뒷면 ${L.back.w}×${L.back.h}mm (접힘 ${[c.fL1, c.fL2].filter(Boolean).join("+") || 0} | 그림 ${c.bw} | ${c.fR})`, (L.back.x + L.back.w / 2) * s, (L.back.y + L.back.h + 9) * s);
+      g.fillText(`뒷면 ${L.back.w}×${L.back.h}mm (접힘 ${c.fL} | 그림 ${c.bw} | 접힘 ${[c.fR1, c.fR2].filter(Boolean).join("+") || 0})`, (L.back.x + L.back.w / 2) * s, (L.back.y + L.back.h + 9) * s);
       g.fillText(`CD Ø${c.cdD}mm · 구멍 Ø${c.hole}mm`, cd.cx * s, (cd.cy + cd.r + 5) * s);
       g.font = `400 ${2.6 * s}px "IBM Plex Sans KR", sans-serif`;
       g.fillText("실선 = 자르는 선 · 칸 위아래 점선 = 접는 자리 · 배율 100%(실제 크기)로 인쇄", A4.w / 2 * s, 285 * s);
@@ -468,7 +469,7 @@ select { font: inherit; font-size: 15px; min-height: var(--tap); padding: 6px 8p
       onclick: () => select(k)
     }, n, el("small", {}, tabSmall(k)))));
     const c = state.size;
-    document.getElementById("sizeSummary").textContent = `앞커버 ${c.cw * 2}×${c.ch} · 뒷면 ${L.back.w}×${c.ch} · CD Ø${c.cdD} mm`;
+    document.getElementById("sizeSummary").textContent = `앞커버 ${c.cw * 2}×${c.ch} · 뒷면 ${L.back.w}×${c.bh} · CD Ø${c.cdD} mm`;
   }
   function select(k) { state.sel = k; if (state.textSel && !state.texts.some(t => t.id === state.textSel && t.panel === k)) state.textSel = null; buildControls(); render(); }
 
@@ -494,14 +495,14 @@ select { font: inherit; font-size: 15px; min-height: var(--tap); padding: 6px 8p
   function panelSizeText(k) {
     const c = state.size;
     if (k === "cd") return `Ø${c.cdD}mm · 구멍 Ø${c.hole}mm`;
-    if (k === "back") return `${c.bw}×${c.ch}mm`;
+    if (k === "back") return `${c.bw}×${c.bh}mm`;
     return `${c.cw}×${c.ch}mm`;
   }
 
   function buildControls() {
     const k = state.sel;
     if (k === "size") { titleEl.replaceChildren("크기 설정 ", el("span", {}, "단위 mm")); controls.replaceChildren(...sizeControls()); return; }
-    if (k === "spines") { titleEl.replaceChildren("뒷면 접는 부분 ", el("span", {}, `${state.size.fL1}+${state.size.fL2} · ${state.size.fR}mm`)); controls.replaceChildren(...spineControls()); return; }
+    if (k === "spines") { titleEl.replaceChildren("뒷면 접는 부분 ", el("span", {}, `왼쪽 ${state.size.fL} · 오른쪽 ${state.size.fR1}+${state.size.fR2}mm`)); controls.replaceChildren(...spineControls()); return; }
     titleEl.replaceChildren(PANEL_NAMES[k] + " ", el("span", {}, panelSizeText(k)));
     controls.replaceChildren(
       el("button", { class: "bigbtn", id: "pick-" + k, onclick: () => { fileInput.dataset.target = k; fileInput.click(); } },
@@ -513,12 +514,6 @@ select { font: inherit; font-size: 15px; min-height: var(--tap); padding: 6px 8p
         el("button", { class: "btn", "aria-label": "그림 확대", onclick: () => { zoomBy(k, 1.15); render(); } }, el("span", { class: "ic" }, "+"), "크게"),
         el("button", { class: "btn", onclick: () => { Object.assign(state.fit[k], { z: 1, ox: 0, oy: 0 }); render(); } }, el("span", { class: "ic" }, "⟲"), "처음대로"),
         el("button", { class: "btn", onclick: () => { const f = state.fit[k]; f.ox = 0; f.oy = 0; render(); } }, el("span", { class: "ic" }, "◎"), "가운데")),
-      el("label", { class: "check" },
-        el("input", { type: "checkbox", id: "flip-" + k, checked: state.flip[k], onchange: e => { state.flip[k] = e.target.checked; buildControls(); render(); const f = document.getElementById("flip-" + k); if (f) f.focus(); } }),
-        "인쇄할 때 위아래 뒤집기 (케이스에 거꾸로 들어가는 칸)"),
-      el("p", { class: "hint" }, state.flip[k]
-        ? "편집 창은 케이스에 넣었을 때 보이는 모습이에요. 전체 배치와 PDF에는 거꾸로 찍혀요."
-        : "케이스에 넣었더니 그림이 거꾸로 보이면 위 칸을 켜요."),
       ...textControls(k),
       ...(k === "front" ? [el("button", { class: "btn", onclick: () => { applyFrontColor(); setStatus("앞면 그림 색으로 접는 부분을 칠했어요."); } }, "앞면 그림 색으로 접는 부분 칠하기")] : [])
     );
@@ -580,18 +575,18 @@ select { font: inherit; font-size: 15px; min-height: var(--tap); padding: 6px 8p
     const warnEl = el("p", { class: "warn", id: "sizeWarn", role: "alert" }, L.fits ? "" : "지금 크기로는 A4 한 장에 다 들어가지 않아요.");
     return [
       el("p", { class: "hint" }, "인쇄해서 재 보고 안 맞는 곳의 숫자를 고쳐요. 바꾸면 바로 배치가 다시 그려져요."),
-      el("div", { class: "box" }, el("h3", {}, "앞커버", el("span", {}, "두 칸 + 가운데 접음")),
-        el("div", { class: "grid2" }, num("cw", "칸 가로 (한 칸)"), num("ch", "세로 (뒷면과 같음)"))),
-      el("div", { class: "box" }, el("h3", {}, "뒷면", el("span", {}, `합계 ${c.fL1 + c.fL2 + c.bw + c.fR}mm`)),
-        el("div", { class: "grid2" }, num("fL1", "왼쪽 접힘 ① (바깥)"), num("fL2", "왼쪽 접힘 ②")),
-        el("div", { class: "grid2" }, num("bw", "그림 칸 가로"), num("fR", "오른쪽 접힘")),
-        el("p", { class: "hint" }, "접힘을 0으로 하면 그 칸이 없어져요.")),
+      el("div", { class: "box" }, el("h3", {}, "앞커버", el("span", {}, `두 칸 + 가운데 접음 · 합계 ${c.cw * 2}×${c.ch}mm`)),
+        el("div", { class: "grid2" }, num("cw", "칸 가로 (한 칸)"), num("ch", "세로"))),
+      el("div", { class: "box" }, el("h3", {}, "뒷면", el("span", {}, `합계 ${c.fL + c.bw + c.fR1 + c.fR2}×${c.bh}mm`)),
+        el("div", { class: "grid2" }, num("bw", "그림 칸 가로"), num("bh", "세로")),
+        el("div", { class: "grid3" }, num("fL", "왼쪽 접힘"), num("fR1", "오른쪽 접힘 ①"), num("fR2", "오른쪽 접힘 ② (바깥)")),
+        el("p", { class: "hint" }, "오른쪽은 두 번 접혀요. 접힘을 0으로 하면 그 칸이 없어져요.")),
       el("div", { class: "box" }, el("h3", {}, "CD", el("span", {}, "원")),
         el("div", { class: "grid2" }, num("cdD", "지름"), num("hole", "가운데 구멍 지름"))),
       el("div", { class: "box" }, el("h3", {}, "여백", el("span", {}, "자르는 선 밖")),
         el("div", { class: "grid2" }, num("bleed", "그림을 더 그릴 폭"))),
       warnEl,
-      el("button", { class: "btn", onclick: () => { state.size = { ...DEFAULT_SIZE }; relayout(); buildControls(); render(); setStatus("크기를 기본값으로 되돌렸어요."); } }, "기본 크기로 되돌리기 (커버 40×40 · 뒷면 5+5+50+5 · CD 39)")
+      el("button", { class: "btn", onclick: () => { state.size = { ...DEFAULT_SIZE }; relayout(); buildControls(); render(); setStatus("크기를 기본값으로 되돌렸어요."); } }, "기본 크기로 되돌리기 (커버 42×42 · 뒷면 5+50+5+5 × 40 · CD 39)")
     ];
   }
   function applySize(key, input) {
@@ -612,7 +607,7 @@ select { font: inherit; font-size: 15px; min-height: var(--tap); padding: 6px 8p
     const f = document.getElementById("sz-" + key); if (f) f.focus();
     setStatus("크기를 바꿨어요.");
   }
-  function relayout() { L = layout(state.size); if (!L.strips[state.spineSel]) state.spineSel = Object.keys(L.strips)[0] || "foldL2"; }
+  function relayout() { L = layout(state.size); if (!L.strips[state.spineSel]) state.spineSel = Object.keys(L.strips)[0] || "foldR1"; }
 
   // ----- 접는 부분 -----
   function spineControls() {
@@ -620,7 +615,7 @@ select { font: inherit; font-size: 15px; min-height: var(--tap); padding: 6px 8p
     const out = [el("p", { class: "hint" }, "케이스에 끼우면 옆에서 보이는 자리예요. 편집 창에서 칸을 눌러 고르고 색과 글자를 넣어요.")];
     if (!keys.length) out.push(el("p", { class: "hint" }, "크기 설정에서 접힘이 모두 0이라 접는 칸이 없어요."));
     for (const k of keys) {
-      const v = state.strips[k], wmm = state.size[k === "foldL1" ? "fL1" : k === "foldL2" ? "fL2" : "fR"];
+      const v = state.strips[k], wmm = state.size[STRIP_SIZE_KEY[k]];
       const sel = () => { if (state.spineSel !== k) { state.spineSel = k; markStrip(); renderStage(); } };
       const touched = () => { state.spinesTouched = true; render(); };
       const dir = el("select", { id: "dir-" + k, "aria-label": STRIP_NAMES[k] + " 글자 방향", onfocus: sel, onchange: e => { v.dir = e.target.value; touched(); } },
