@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="그림을 올려 칸에 맞추고 뒷면 접는 부분에 색과 글자를 넣어 A4 실제 크기 PDF로 받는 미니 CD 케이스 인쇄 도구">
+<meta name="description" content="칸 크기를 mm로 바꾸고 그림과 글자를 넣어 A4 실제 크기 PDF로 받는 미니 CD 케이스 인쇄 도구">
 <title>미니 CD 케이스 공방</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=Space+Grotesk:wght@500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=Space+Grotesk:wght@500;700&family=Black+Han+Sans&family=Nanum+Myeongjo:wght@700&family=Gaegu:wght@700&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
-/* Layout: 위 = 전체 배치(칸 고르기), 아래·오른쪽 = 고른 칸을 크게 띄운 편집 창 + 조작 버튼. 좁으면 한 줄로 쌓음 */
+/* Layout: 위 = 전체 배치(칸 고르기), 오른쪽(휴대폰은 아래) = 고른 칸을 크게 띄운 편집 창 + 조작 버튼 */
 :root {
   --bg: #f3f5f8;
   --surface: #ffffff;
@@ -21,6 +21,7 @@
   --accent-ink: #ffffff;
   --accent-soft: #e5ecfd;
   --ok: #157a4a;
+  --warn: #b42318;
   --sheet: #ffffff;
   --font-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
   --font-num: "Space Grotesk", "IBM Plex Sans KR", system-ui, sans-serif;
@@ -30,12 +31,12 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #111318; --surface: #1a1d24; --ink: #eceff4; --muted: #9aa3b2; --line: #2c313b;
-    --accent: #7c9dff; --accent-ink: #0d1530; --accent-soft: #1e2740; --ok: #5fd39a; --sheet: #ffffff; color-scheme: dark;
+    --accent: #7c9dff; --accent-ink: #0d1530; --accent-soft: #1e2740; --ok: #5fd39a; --warn: #ff8a7a; --sheet: #ffffff; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #111318; --surface: #1a1d24; --ink: #eceff4; --muted: #9aa3b2; --line: #2c313b;
-  --accent: #7c9dff; --accent-ink: #0d1530; --accent-soft: #1e2740; --ok: #5fd39a; --sheet: #ffffff; color-scheme: dark;
+  --accent: #7c9dff; --accent-ink: #0d1530; --accent-soft: #1e2740; --ok: #5fd39a; --warn: #ff8a7a; --sheet: #ffffff; color-scheme: dark;
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 body {
@@ -56,17 +57,18 @@ h1 { font-size: 1.5rem; margin: 0; letter-spacing: -0.01em; text-wrap: balance; 
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; display: grid; gap: 12px; min-width: 0; }
 .card h2 { margin: 0; font-size: 1rem; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .card h2 span { font-family: var(--font-num); font-size: 0.82rem; font-weight: 500; color: var(--muted); }
+h3.sub { margin: 4px 0 0; font-size: 0.92rem; }
 #preview { width: 100%; height: auto; display: block; background: var(--sheet); border-radius: 8px; box-shadow: 0 0 0 1px var(--line); cursor: pointer; touch-action: manipulation; }
 #stage { width: 100%; height: auto; display: block; background: #e9ecf1; border-radius: 10px; touch-action: none; cursor: grab; box-shadow: 0 0 0 1px var(--line); }
 #stage.dragging { cursor: grabbing; }
 #stage:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
-.tabs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
-@media (max-width: 520px) { .tabs { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.tabs { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
+@media (max-width: 560px) { .tabs { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .tabs button {
-  font: inherit; font-size: 0.88rem; min-height: var(--tap); border: 1px solid var(--line); background: var(--surface);
-  color: var(--ink); border-radius: 10px; cursor: pointer; padding: 4px 6px; display: grid; place-items: center; line-height: 1.2;
+  font: inherit; font-size: 0.86rem; min-height: var(--tap); border: 1px solid var(--line); background: var(--surface);
+  color: var(--ink); border-radius: 10px; cursor: pointer; padding: 4px 4px; display: grid; place-items: center; line-height: 1.2;
 }
-.tabs button small { font-size: 0.72rem; color: var(--muted); }
+.tabs button small { font-size: 0.7rem; color: var(--muted); }
 .tabs button.done small { color: var(--ok); font-weight: 700; }
 .tabs button[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .tabs button[aria-selected="true"] small { color: var(--accent-ink); }
@@ -78,20 +80,28 @@ h1 { font-size: 1.5rem; margin: 0; letter-spacing: -0.01em; text-wrap: balance; 
 }
 .btn .ic { font-family: var(--font-num); font-size: 1.25rem; font-weight: 700; }
 .btn:hover { border-color: var(--accent); }
-.btn:active { background: var(--accent-soft); }
+.btn:active, .btn[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); }
+.btn.danger { color: var(--warn); }
 .btn:disabled, .bigbtn:disabled { opacity: 0.45; cursor: not-allowed; }
 button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .hint { font-size: 0.84rem; color: var(--muted); margin: 0; }
+.warn { font-size: 0.88rem; color: var(--warn); margin: 0; font-weight: 500; }
 .gesture { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.84rem; color: var(--muted); margin: 0; padding: 0; list-style: none; }
 .gesture li::before { content: "·"; margin-right: 6px; color: var(--accent); font-weight: 700; }
-.strip { border: 1px solid var(--line); border-radius: 10px; padding: 10px; display: grid; gap: 8px; }
-.strip.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
-.strip h3 { margin: 0; font-size: 0.92rem; display: flex; justify-content: space-between; gap: 8px; }
-.strip h3 span { font-family: var(--font-num); font-weight: 500; color: var(--muted); font-size: 0.8rem; }
-.strip-row { display: grid; grid-template-columns: auto auto auto auto minmax(0, 1fr); gap: 8px; align-items: center; }
+.box { border: 1px solid var(--line); border-radius: 10px; padding: 10px; display: grid; gap: 8px; }
+.box.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.box h3 { margin: 0; font-size: 0.92rem; display: flex; justify-content: space-between; gap: 8px; }
+.box h3 span { font-family: var(--font-num); font-weight: 500; color: var(--muted); font-size: 0.8rem; }
+.inline { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.inline .grow { flex: 1 1 140px; min-width: 0; }
 input[type="text"] { font: inherit; font-size: 16px; width: 100%; min-height: var(--tap); padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); }
+input[type="number"] { font-family: var(--font-num); font-size: 16px; width: 100%; min-height: var(--tap); padding: 6px 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); font-variant-numeric: tabular-nums; }
+input[type="range"] { flex: 1 1 120px; min-width: 100px; accent-color: var(--accent); height: var(--tap); }
 input[type="color"] { width: var(--tap); height: var(--tap); border: 1px solid var(--line); border-radius: 10px; background: var(--surface); padding: 3px; cursor: pointer; }
 select { font: inherit; font-size: 15px; min-height: var(--tap); padding: 6px 8px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); min-width: 0; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.num { display: grid; gap: 4px; font-size: 0.82rem; color: var(--muted); }
 .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .export { display: grid; gap: 10px; }
 .status { font-size: 0.88rem; min-height: 1.3em; margin: 0; }
@@ -107,20 +117,20 @@ select { font: inherit; font-size: 15px; min-height: var(--tap); padding: 6px 8p
   <header>
     <h1>미니 CD 케이스 공방</h1>
     <ol class="steps">
-      <li><b>1</b>칸 고르기</li><li><b>2</b>그림 넣기</li><li><b>3</b>손가락으로 맞추기</li><li><b>4</b>A4 PDF 받기</li>
+      <li><b>1</b>크기 확인</li><li><b>2</b>칸마다 그림 넣기</li><li><b>3</b>글자 넣기</li><li><b>4</b>손가락으로 맞추기</li><li><b>5</b>A4 PDF 받기</li>
     </ol>
   </header>
 
   <div class="main">
     <section class="card" aria-label="전체 배치">
-      <h2>전체 배치 <span>A4 · 실제 크기 mm</span></h2>
+      <h2>전체 배치 <span id="sizeSummary"></span></h2>
       <canvas id="preview" width="1400" height="980" aria-label="CD 케이스 전체 배치. 칸을 누르면 그 칸을 편집해요"></canvas>
-      <p class="hint">칸을 누르면 오른쪽(휴대폰은 아래) 편집 창에 크게 떠요. 실선은 자르는 선, 칸 위아래의 짧은 점선은 접는 자리예요.</p>
+      <p class="hint">칸을 누르면 편집 창에 크게 떠요. 실선은 자르는 선, 칸 위아래의 짧은 점선은 접는 자리예요.</p>
     </section>
 
     <section class="card" aria-label="칸 편집">
       <div class="tabs" role="tablist" id="tabs"></div>
-      <h2 id="stageTitle">앞면 <span>40×40mm</span></h2>
+      <h2 id="stageTitle"></h2>
       <div class="dropzone" id="dropzone">
         <canvas id="stage" width="800" height="800" tabindex="0" aria-label="고른 칸 편집 창. 끌어서 옮기고 두 손가락으로 확대해요. 키보드 화살표로도 옮길 수 있어요"></canvas>
       </div>
@@ -128,10 +138,10 @@ select { font: inherit; font-size: 15px; min-height: var(--tap); padding: 6px 8p
     </section>
 
     <section class="card export" aria-label="PDF 받기" style="grid-column: 1 / -1">
-      <label class="check"><input type="checkbox" id="labels" checked> 칸 이름과 안내 글자도 함께 인쇄</label>
+      <label class="check"><input type="checkbox" id="labels" checked> 칸 이름, 안내 글자, 50mm 확인용 자도 함께 인쇄</label>
       <button class="bigbtn" id="savePdf">A4 PDF 받기</button>
       <p class="status" id="status" role="status"></p>
-      <p class="hint">인쇄할 때 배율을 100%(실제 크기)로 맞춰야 크기가 정확해요. 그림은 자르는 선 밖으로 1mm 더 그려져서 가위질이 조금 빗나가도 흰 틈이 안 생겨요.</p>
+      <p class="hint">인쇄할 때 배율을 100%(실제 크기)로 맞춰야 크기가 정확해요. 인쇄한 종이의 자가 50mm인지 재 보세요. 그림은 자르는 선 밖으로 조금 더 그려져서 가위질이 빗나가도 흰 틈이 안 생겨요.</p>
     </section>
   </div>
 </div>
@@ -140,32 +150,20 @@ select { font: inherit; font-size: 15px; min-height: var(--tap); padding: 6px 8p
 
 <script>
 (() => {
-  // ---------- 치수(mm) ----------
   const A4 = { w: 210, h: 297 };
-  const BLEED = 1;
-  const COVER = { x: 20, y: 25, w: 80, h: 40 };
-  const BACK = { x: 120, y: 25, w: 55, h: 40 };
-  const CD = { cx: 39.5, cy: 104.5, r: 19.5, hole: 2.5 };
-  const VIEW = { x: 10, y: 14, w: 175, h: 122.5 };
-
-  const PANELS = {
-    front:  { name: "앞면", size: "40×40mm", rect: { x: 60, y: 25, w: 40, h: 40 }, bleed: [0, 1, 1, 1] },
-    inside: { name: "안쪽 면", size: "40×40mm", rect: { x: 20, y: 25, w: 40, h: 40 }, bleed: [1, 0, 1, 1] },
-    back:   { name: "뒷면", size: "40×40mm", rect: { x: 130, y: 25, w: 40, h: 40 }, bleed: [0, 0, 1, 1] },
-    cd:     { name: "CD", size: "Ø39mm · 구멍 Ø5mm", circle: true }
-  };
-  // 뒷면 접는 부분: 왼쪽은 5mm씩 두 번 접히고 오른쪽은 한 번
-  const STRIPS = {
-    foldL1: { name: "왼쪽 접힘 ①", range: "바깥 0~5mm", x: 120, w: 5, bleed: [1, 0, 1, 1] },
-    foldL2: { name: "왼쪽 접힘 ②", range: "5~10mm", x: 125, w: 5, bleed: [0, 0, 1, 1] },
-    foldR:  { name: "오른쪽 접힘", range: "50~55mm", x: 170, w: 5, bleed: [0, 1, 1, 1] }
-  };
-  const FOLDS_BACK = [125, 130, 170];
-  const FOLD_COVER = 60;
+  const DEFAULT_SIZE = { cw: 40, ch: 40, bw: 50, fL1: 5, fL2: 5, fR: 5, cdD: 39, hole: 5, bleed: 1 };
+  const LIMIT = { cw: [15, 90], ch: [15, 120], bw: [15, 150], fL1: [0, 20], fL2: [0, 20], fR: [0, 20], cdD: [15, 120], hole: [0, 40], bleed: [0, 3] };
   const ZMIN = 1, ZMAX = 4;
+  const FONTS = [
+    ["IBM Plex Sans KR", "기본 고딕"], ["Black Han Sans", "굵은 제목체"], ["Nanum Myeongjo", "명조"],
+    ["Gaegu", "손글씨"], ["Space Grotesk", "영문 고딕"]
+  ];
+  const PANEL_NAMES = { front: "앞면", inside: "안쪽 면", back: "뒷면", cd: "CD" };
+  const STRIP_NAMES = { foldL1: "왼쪽 접힘 ①", foldL2: "왼쪽 접힘 ②", foldR: "오른쪽 접힘" };
 
   const state = {
-    sel: "front", spineSel: "foldL2", labels: true,
+    size: { ...DEFAULT_SIZE },
+    sel: "front", spineSel: "foldL2", textSel: null, labels: true,
     img: { front: null, inside: null, back: null, cd: null },
     mine: { front: false, inside: false, back: false, cd: false },
     fit: { front: { z: 1, ox: 0, oy: 0 }, inside: { z: 1, ox: 0, oy: 0 }, back: { z: 1, ox: 0, oy: 0 }, cd: { z: 1, ox: 0, oy: 0 } },
@@ -174,8 +172,46 @@ select { font: inherit; font-size: 15px; min-height: var(--tap); padding: 6px 8p
       foldL2: { bg: "#1b1f2a", text: "SAMPLE · 예시 앨범", fg: "#ffffff", dir: "down" },
       foldR:  { bg: "#e9e4da", text: "SAMPLE · 예시 앨범", fg: "#1b1f2a", dir: "down" }
     },
-    spinesTouched: false
+    texts: [], nextId: 1,
+    spinesTouched: false, sampleName: ""
   };
+
+  // ---------- 배치 계산(mm) ----------
+  let L = null;
+  function layout(c) {
+    const M = 20, TOP = 25, GAP = 20, SIDE = 18;
+    const cover = { x: M, y: TOP, w: c.cw * 2, h: c.ch };
+    const backW = c.fL1 + c.fL2 + c.bw + c.fR;
+    let back = { x: cover.x + cover.w + SIDE, y: TOP, w: backW, h: c.ch };
+    let bottom = TOP + c.ch;
+    if (back.x + back.w > A4.w - 10) { back = { x: M, y: bottom + GAP, w: backW, h: c.ch }; bottom = back.y + c.ch; }
+    const r = c.cdD / 2;
+    const cd = { cx: M + r, cy: bottom + GAP + r, r, hole: c.hole / 2 };
+    const b = c.bleed;
+    const segs = [];
+    let x = back.x;
+    if (c.fL1 > 0) { segs.push({ key: "foldL1", x, w: c.fL1 }); x += c.fL1; }
+    if (c.fL2 > 0) { segs.push({ key: "foldL2", x, w: c.fL2 }); x += c.fL2; }
+    segs.push({ key: "back", x, w: c.bw }); x += c.bw;
+    if (c.fR > 0) { segs.push({ key: "foldR", x, w: c.fR }); }
+    segs.forEach((s, i) => { s.bleed = [i === 0 ? b : 0, i === segs.length - 1 ? b : 0, b, b]; });
+    const panels = {
+      inside: { rect: { x: cover.x, y: TOP, w: c.cw, h: c.ch }, bleed: [b, 0, b, b] },
+      front: { rect: { x: cover.x + c.cw, y: TOP, w: c.cw, h: c.ch }, bleed: [0, b, b, b] }
+    };
+    const strips = {};
+    for (const s of segs) {
+      const rect = { x: s.x, y: back.y, w: s.w, h: back.h };
+      if (s.key === "back") panels.back = { rect, bleed: s.bleed }; else strips[s.key] = { rect, bleed: s.bleed };
+    }
+    const foldsBack = segs.slice(1).map(s => s.x);
+    const ruler = { x: back.y === TOP ? back.x : M + c.cdD + 20, y: back.y === TOP ? TOP + c.ch + 30 : cd.cy };
+    const right = Math.max(cover.x + cover.w, back.x + back.w, cd.cx + r, ruler.x + 50);
+    const lowest = Math.max(cd.cy + r + 8, back.y + back.h + 12, ruler.y + 6);
+    const fits = right <= A4.w - 5 && lowest <= 280 && c.hole < c.cdD;
+    const view = { x: 10, y: TOP - 11, w: Math.max(right, 150) + 10 - 10, h: lowest - (TOP - 11) + 4 };
+    return { cover, back, cd, panels, strips, foldsBack, foldCover: cover.x + c.cw, ruler, view, fits, b };
+  }
 
   // ---------- 예시 그림 ----------
   function sampleArt(w, h, c1, c2, title, sub) {
@@ -192,15 +228,12 @@ select { font: inherit; font-size: 15px; min-height: var(--tap); padding: 6px 8p
     g.fillText(sub, w / 2, h / 2 + h * 0.1);
     return cv;
   }
-  function loadImg(src) {
-    return new Promise(res => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = src; });
-  }
+  function loadImg(src) { return new Promise(res => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(null); i.src = src; }); }
   async function loadSamples() {
-    // 예시: 리센느 미니 4집 PULSE (같이 올린 sample/ 그림). 못 불러오면 그려 낸 예시 그림
     const fallback = {
       front: () => sampleArt(900, 900, "#1f4fd8", "#0d1a3f", "SAMPLE", "예시 그림 · 앞면"),
       inside: () => sampleArt(900, 900, "#c2410c", "#3b1206", "INSIDE", "예시 그림 · 안쪽 면"),
-      back: () => sampleArt(900, 900, "#0f766e", "#062b28", "BACK", "예시 그림 · 뒷면"),
+      back: () => sampleArt(1125, 900, "#0f766e", "#062b28", "BACK", "예시 그림 · 뒷면"),
       cd: () => sampleArt(900, 900, "#6d28d9", "#1d0b3d", "CD", "예시 그림 · CD")
     };
     const keys = ["front", "inside", "back", "cd"];
@@ -218,20 +251,23 @@ select { font: inherit; font-size: 15px; min-height: var(--tap); padding: 6px 8p
   // ---------- 기하 ----------
   const grow = (r, b) => ({ x: r.x - b[0], y: r.y - b[2], w: r.w + b[0] + b[1], h: r.h + b[2] + b[3] });
   function boxOf(k) {
-    if (k === "cd") { const rr = CD.r + BLEED / 2; return { x: CD.cx - rr, y: CD.cy - rr, w: rr * 2, h: rr * 2 }; }
-    return grow(PANELS[k].rect, PANELS[k].bleed);
+    if (k === "cd") { const rr = L.cd.r + L.b / 2; return { x: L.cd.cx - rr, y: L.cd.cy - rr, w: rr * 2, h: rr * 2 }; }
+    return grow(L.panels[k].rect, L.panels[k].bleed);
   }
   function cutOf(k) {
-    if (k === "cd") return { x: CD.cx - CD.r, y: CD.cy - CD.r, w: CD.r * 2, h: CD.r * 2 };
-    if (k === "spines") return { x: BACK.x, y: BACK.y, w: BACK.w, h: BACK.h };
-    return PANELS[k].rect;
+    if (k === "cd") return { x: L.cd.cx - L.cd.r, y: L.cd.cy - L.cd.r, w: L.cd.r * 2, h: L.cd.r * 2 };
+    if (k === "spines" || k === "size") return { x: L.back.x, y: L.back.y, w: L.back.w, h: L.back.h };
+    return L.panels[k].rect;
   }
   function regionOf(k) {
-    const c = cutOf(k), pad = k === "spines" ? 4 : 3.5;
+    if (k === "size") return { x: L.view.x, y: L.view.y, w: L.view.w, h: L.view.h };
+    const c = cutOf(k), pad = Math.max(3.5, Math.min(c.w, c.h) * 0.09);
     return { x: c.x - pad, y: c.y - pad, w: c.w + pad * 2, h: c.h + pad * 2 };
   }
+  const isPanel = k => k === "front" || k === "inside" || k === "back" || k === "cd";
 
   // ---------- 그리기 ----------
+  const textBoxes = []; // 글자 누르기용 (mm)
   function coverDraw(g, img, box, fit, s) {
     const iw = img.width, ih = img.height, bw = box.w * s, bh = box.h * s;
     const sc = Math.max(bw / iw, bh / ih) * fit.z, dw = iw * sc, dh = ih * sc;
@@ -239,66 +275,106 @@ select { font: inherit; font-size: 15px; min-height: var(--tap); padding: 6px 8p
     const y = box.y * s + bh / 2 - dh / 2 + fit.oy * Math.max(0, (dh - bh) / 2);
     g.save(); g.beginPath(); g.rect(box.x * s, box.y * s, bw, bh); g.clip(); g.drawImage(img, x, y, dw, dh); g.restore();
   }
+  function clipPanel(g, k, s) {
+    g.beginPath();
+    if (k === "cd") { g.arc(L.cd.cx * s, L.cd.cy * s, (L.cd.r + L.b / 2) * s, 0, Math.PI * 2); }
+    else { const r = boxOf(k); g.rect(r.x * s, r.y * s, r.w * s, r.h * s); }
+    g.clip();
+  }
+  function fontOf(t, px) { return `${t.bold ? 700 : 400} ${px}px "${t.font}", "IBM Plex Sans KR", sans-serif`; }
+  function drawTexts(g, k, s, record) {
+    const items = state.texts.filter(t => t.panel === k);
+    if (!items.length) return;
+    const c = cutOf(k);
+    g.save(); clipPanel(g, k, s);
+    for (const t of items) {
+      const cx = c.x + t.x * c.w, cy = c.y + t.y * c.h, px = t.size * s;
+      g.font = fontOf(t, px); g.textAlign = "center"; g.textBaseline = "middle";
+      const lines = t.text.split("\n"), lh = t.size * 1.2;
+      const wMm = Math.max(...lines.map(l => g.measureText(l).width)) / s;
+      lines.forEach((ln, i) => {
+        const y = (cy + (i - (lines.length - 1) / 2) * lh) * s;
+        if (t.outline) { g.lineJoin = "round"; g.lineWidth = px * 0.18; g.strokeStyle = t.outline; g.strokeText(ln, cx * s, y); }
+        g.fillStyle = t.color; g.fillText(ln, cx * s, y);
+      });
+      if (record) textBoxes.push({ id: t.id, panel: k, x: cx - wMm / 2 - 1, y: cy - lines.length * lh / 2 - 1, w: wMm + 2, h: lines.length * lh + 2 });
+    }
+    g.restore();
+  }
   function drawStrip(g, key, s) {
-    const st = STRIPS[key], v = state.strips[key];
-    const r = grow({ x: st.x, y: BACK.y, w: st.w, h: BACK.h }, st.bleed);
+    const st = L.strips[key]; if (!st) return;
+    const v = state.strips[key], r = grow(st.rect, st.bleed);
     g.fillStyle = v.bg; g.fillRect(r.x * s, r.y * s, r.w * s, r.h * s);
-    const text = (v.text || "").trim();
-    if (!text) return;
-    g.save(); g.translate((st.x + st.w / 2) * s, (BACK.y + BACK.h / 2) * s);
+    const text = (v.text || "").trim(); if (!text) return;
+    g.save(); g.translate((st.rect.x + st.rect.w / 2) * s, (st.rect.y + st.rect.h / 2) * s);
     g.rotate(v.dir === "down" ? Math.PI / 2 : -Math.PI / 2);
-    let size = st.w * 0.55 * s; g.font = `700 ${size}px "IBM Plex Sans KR", sans-serif`;
-    const maxLen = (BACK.h - 3) * s, tw = g.measureText(text).width;
+    let size = st.rect.w * 0.55 * s; g.font = `700 ${size}px "IBM Plex Sans KR", sans-serif`;
+    const maxLen = (st.rect.h - 3) * s, tw = g.measureText(text).width;
     if (tw > maxLen) { size *= maxLen / tw; g.font = `700 ${size}px "IBM Plex Sans KR", sans-serif`; }
     g.fillStyle = v.fg; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(text, 0, size * 0.04);
     g.restore();
   }
-  function drawSheet(g, s) {
+  function drawSheet(g, s, record) {
+    if (record) textBoxes.length = 0;
+    const c = state.size;
     g.fillStyle = "#ffffff"; g.fillRect(0, 0, A4.w * s, A4.h * s);
-    for (const k of ["inside", "front", "back"]) if (state.img[k]) coverDraw(g, state.img[k], boxOf(k), state.fit[k], s);
-    for (const k of Object.keys(STRIPS)) drawStrip(g, k, s);
-    if (state.img.cd) {
-      const rr = CD.r + BLEED / 2;
-      g.save(); g.beginPath(); g.arc(CD.cx * s, CD.cy * s, rr * s, 0, Math.PI * 2); g.clip();
-      coverDraw(g, state.img.cd, boxOf("cd"), state.fit.cd, s); g.restore();
-    }
-    g.fillStyle = "#ffffff"; g.beginPath(); g.arc(CD.cx * s, CD.cy * s, CD.hole * s, 0, Math.PI * 2); g.fill();
+    for (const k of ["inside", "front", "back"]) { if (state.img[k]) coverDraw(g, state.img[k], boxOf(k), state.fit[k], s); drawTexts(g, k, s, record); }
+    for (const k of Object.keys(L.strips)) drawStrip(g, k, s);
+    if (state.img.cd) { g.save(); clipPanel(g, "cd", s); coverDraw(g, state.img.cd, boxOf("cd"), state.fit.cd, s); g.restore(); }
+    drawTexts(g, "cd", s, record);
+    const cd = L.cd;
+    if (cd.hole > 0) { g.fillStyle = "#ffffff"; g.beginPath(); g.arc(cd.cx * s, cd.cy * s, cd.hole * s, 0, Math.PI * 2); g.fill(); }
+    // 자르는 선
     g.strokeStyle = "#8c8c8c"; g.lineWidth = Math.max(1, 0.1 * s); g.setLineDash([]);
-    g.strokeRect(COVER.x * s, COVER.y * s, COVER.w * s, COVER.h * s);
-    g.strokeRect(BACK.x * s, BACK.y * s, BACK.w * s, BACK.h * s);
-    g.beginPath(); g.arc(CD.cx * s, CD.cy * s, CD.r * s, 0, Math.PI * 2); g.stroke();
-    g.beginPath(); g.arc(CD.cx * s, CD.cy * s, CD.hole * s, 0, Math.PI * 2); g.stroke();
+    g.strokeRect(L.cover.x * s, L.cover.y * s, L.cover.w * s, L.cover.h * s);
+    g.strokeRect(L.back.x * s, L.back.y * s, L.back.w * s, L.back.h * s);
+    g.beginPath(); g.arc(cd.cx * s, cd.cy * s, cd.r * s, 0, Math.PI * 2); g.stroke();
+    if (cd.hole > 0) { g.beginPath(); g.arc(cd.cx * s, cd.cy * s, cd.hole * s, 0, Math.PI * 2); g.stroke(); }
+    // 접는 자리
     g.setLineDash([1 * s, 1 * s]);
     const tick = (x, top, bot) => {
       g.beginPath(); g.moveTo(x * s, (top - 1.5) * s); g.lineTo(x * s, (top - 5) * s); g.stroke();
       g.beginPath(); g.moveTo(x * s, (bot + 1.5) * s); g.lineTo(x * s, (bot + 5) * s); g.stroke();
     };
-    tick(FOLD_COVER, COVER.y, COVER.y + COVER.h);
-    FOLDS_BACK.forEach(x => tick(x, BACK.y, BACK.y + BACK.h));
+    tick(L.foldCover, L.cover.y, L.cover.y + L.cover.h);
+    L.foldsBack.forEach(x => tick(x, L.back.y, L.back.y + L.back.h));
     g.setLineDash([]);
     if (state.labels) {
       g.fillStyle = "#8c8c8c"; g.textAlign = "center"; g.textBaseline = "alphabetic";
       g.font = `400 ${2.3 * s}px "IBM Plex Sans KR", sans-serif`;
-      g.fillText("앞커버 80×40mm (왼쪽 = 안쪽 면, 오른쪽 = 앞면)", (COVER.x + COVER.w / 2) * s, (COVER.y + COVER.h + 9) * s);
-      g.fillText("뒷면 55×40mm (왼쪽 5mm씩 두 번, 오른쪽 5mm 접음)", (BACK.x + BACK.w / 2) * s, (BACK.y + BACK.h + 9) * s);
-      g.fillText("CD Ø39mm · 구멍 Ø5mm", CD.cx * s, (CD.cy + CD.r + 5) * s);
+      g.fillText(`앞커버 ${L.cover.w}×${L.cover.h}mm (왼쪽 = 안쪽 면, 오른쪽 = 앞면)`, (L.cover.x + L.cover.w / 2) * s, (L.cover.y + L.cover.h + 9) * s);
+      g.fillText(`뒷면 ${L.back.w}×${L.back.h}mm (접힘 ${[c.fL1, c.fL2].filter(Boolean).join("+") || 0} | 그림 ${c.bw} | ${c.fR})`, (L.back.x + L.back.w / 2) * s, (L.back.y + L.back.h + 9) * s);
+      g.fillText(`CD Ø${c.cdD}mm · 구멍 Ø${c.hole}mm`, cd.cx * s, (cd.cy + cd.r + 5) * s);
       g.font = `400 ${2.6 * s}px "IBM Plex Sans KR", sans-serif`;
       g.fillText("실선 = 자르는 선 · 칸 위아래 점선 = 접는 자리 · 배율 100%(실제 크기)로 인쇄", A4.w / 2 * s, 285 * s);
+      // 50mm 확인용 자
+      const rx = L.ruler.x, ry = L.ruler.y;
+      g.lineWidth = Math.max(1, 0.12 * s);
+      g.beginPath(); g.moveTo(rx * s, ry * s); g.lineTo((rx + 50) * s, ry * s); g.stroke();
+      for (let i = 0; i <= 50; i += 5) { const ln = i % 10 === 0 ? 2.5 : 1.5; g.beginPath(); g.moveTo((rx + i) * s, ry * s); g.lineTo((rx + i) * s, (ry - ln) * s); g.stroke(); }
+      g.textAlign = "left"; g.font = `400 ${2.2 * s}px "IBM Plex Sans KR", sans-serif`;
+      g.fillText("자로 재서 50mm면 배율이 맞아요", rx * s, (ry + 4) * s);
     }
   }
 
-  // 편집 표시(인쇄 안 됨): 고른 칸 바깥을 흐리게, 칸 이름
+  // 편집 표시(인쇄 안 됨)
   function focusPath(g, k, s, pad) {
-    if (k === "cd") { g.arc(CD.cx * s, CD.cy * s, (CD.r + pad) * s, 0, Math.PI * 2); return; }
+    if (k === "cd") { g.arc(L.cd.cx * s, L.cd.cy * s, (L.cd.r + pad) * s, 0, Math.PI * 2); return; }
     const c = cutOf(k); g.rect((c.x - pad) * s, (c.y - pad) * s, (c.w + pad * 2) * s, (c.h + pad * 2) * s);
   }
   function overlay(g, s, k, area, strong) {
+    if (k === "size") return;
     g.save();
     g.beginPath(); g.rect(area.x * s, area.y * s, area.w * s, area.h * s); focusPath(g, k, s, 0);
     g.fillStyle = strong ? "rgba(233,236,241,0.78)" : "rgba(255,255,255,0.55)"; g.fill("evenodd");
     g.beginPath(); focusPath(g, k, s, strong ? 0 : 1.2);
     g.strokeStyle = "#1f4fd8"; g.lineWidth = Math.max(2, (strong ? 0.25 : 0.35) * s); g.setLineDash(strong ? [] : [1.2 * s, 0.8 * s]); g.stroke();
     g.restore();
+  }
+  function selectedTextBox(g, s) {
+    const b = textBoxes.find(t => t.id === state.textSel && t.panel === state.sel); if (!b) return;
+    g.save(); g.strokeStyle = "#1f4fd8"; g.lineWidth = Math.max(2, 0.2 * s); g.setLineDash([0.8 * s, 0.5 * s]);
+    g.strokeRect(b.x * s, b.y * s, b.w * s, b.h * s); g.restore();
   }
   function panelLabels(g, s) {
     g.save(); g.font = `700 ${3 * s}px "IBM Plex Sans KR", sans-serif`; g.textAlign = "center"; g.textBaseline = "middle";
@@ -307,20 +383,21 @@ select { font: inherit; font-size: 15px; min-height: var(--tap); padding: 6px 8p
       g.fillStyle = "rgba(22,25,31,0.72)"; g.beginPath(); g.roundRect(x * s - w / 2, y * s - h / 2, w, h, 1.2 * s); g.fill();
       g.fillStyle = "#fff"; g.fillText(txt, x * s, y * s + 0.1 * s);
     };
-    for (const k of ["inside", "front", "back"]) { const r = PANELS[k].rect; tag((state.mine[k] ? "" : "+ ") + PANELS[k].name, r.x + r.w / 2, r.y + r.h - 5); }
-    tag((state.mine.cd ? "" : "+ ") + "CD", CD.cx, CD.cy + 9);
-    tag("접힘", 127.5, BACK.y + 5);
+    for (const k of ["inside", "front", "back"]) { const r = L.panels[k].rect; tag((state.mine[k] ? "" : "+ ") + PANEL_NAMES[k], r.x + r.w / 2, r.y + r.h - 5); }
+    tag((state.mine.cd ? "" : "+ ") + "CD", L.cd.cx, L.cd.cy + Math.min(9, L.cd.r * 0.5));
+    const fs = Object.values(L.strips);
+    if (fs.length) tag("접힘", fs[0].rect.x + fs[0].rect.w / 2 + (fs.length > 1 && fs[1].rect.x === fs[0].rect.x + fs[0].rect.w ? fs[0].rect.w / 2 : 0), L.back.y + 5);
     g.restore();
   }
 
   const preview = document.getElementById("preview"), pctx = preview.getContext("2d");
   const stage = document.getElementById("stage"), sctx = stage.getContext("2d");
-  let stageRegion = regionOf("front");
+  let stageRegion = null;
 
   function renderPreview() {
-    const s = preview.width / VIEW.w; preview.height = Math.round(VIEW.h * s);
-    pctx.setTransform(1, 0, 0, 1, 0, 0); pctx.translate(-VIEW.x * s, -VIEW.y * s);
-    drawSheet(pctx, s);
+    const V = L.view, s = preview.width / V.w; preview.height = Math.round(V.h * s);
+    pctx.setTransform(1, 0, 0, 1, 0, 0); pctx.translate(-V.x * s, -V.y * s);
+    drawSheet(pctx, s, false);
     overlay(pctx, s, state.sel, { x: 0, y: 0, w: A4.w, h: A4.h }, false);
     panelLabels(pctx, s);
   }
@@ -328,42 +405,55 @@ select { font: inherit; font-size: 15px; min-height: var(--tap); padding: 6px 8p
     const k = state.sel; stageRegion = regionOf(k);
     const cssW = stage.clientWidth || 600, dpr = Math.min(2, window.devicePixelRatio || 1);
     const maxH = Math.max(220, Math.min(window.innerHeight * 0.55, 560));
-    let w = cssW, h = w * stageRegion.h / stageRegion.w;
+    stage.style.width = ""; const full = stage.clientWidth || cssW;
+    let w = full, h = w * stageRegion.h / stageRegion.w;
     if (h > maxH) { h = maxH; w = h * stageRegion.w / stageRegion.h; }
     stage.style.width = w + "px"; stage.style.marginInline = "auto";
     stage.width = Math.round(w * dpr); stage.height = Math.round(h * dpr);
     const s = stage.width / stageRegion.w;
     sctx.setTransform(1, 0, 0, 1, 0, 0); sctx.translate(-stageRegion.x * s, -stageRegion.y * s);
-    drawSheet(sctx, s);
+    drawSheet(sctx, s, true);
     overlay(sctx, s, k, stageRegion, true);
-    if (k === "spines") {
-      const st = STRIPS[state.spineSel];
+    if (k === "spines" && L.strips[state.spineSel]) {
+      const st = L.strips[state.spineSel].rect;
       sctx.strokeStyle = "#1f4fd8"; sctx.lineWidth = Math.max(2, 0.35 * s); sctx.setLineDash([0.8 * s, 0.6 * s]);
-      sctx.strokeRect((st.x + 0.2) * s, (BACK.y + 0.2) * s, (st.w - 0.4) * s, (BACK.h - 0.4) * s); sctx.setLineDash([]);
+      sctx.strokeRect((st.x + 0.2) * s, (st.y + 0.2) * s, (st.w - 0.4) * s, (st.h - 0.4) * s); sctx.setLineDash([]);
     }
+    if (isPanel(k)) selectedTextBox(sctx, s);
   }
   function render() { renderPreview(); renderStage(); renderTabs(); }
 
   // ---------- 탭·조작 ----------
-  const TABS = [["front", "앞면"], ["inside", "안쪽 면"], ["back", "뒷면"], ["spines", "접는 부분"], ["cd", "CD"]];
+  const TABS = [["size", "크기"], ["front", "앞면"], ["inside", "안쪽 면"], ["back", "뒷면"], ["spines", "접는 부분"], ["cd", "CD"]];
   const tabsEl = document.getElementById("tabs"), controls = document.getElementById("controls");
   const titleEl = document.getElementById("stageTitle"), fileInput = document.getElementById("file");
+  const statusEl = document.getElementById("status");
+  const setStatus = t => { statusEl.textContent = t; };
 
   function el(tag, attrs, ...kids) {
     const e = document.createElement(tag);
     for (const [k, v] of Object.entries(attrs || {})) {
-      if (k === "class") e.className = v; else if (k.startsWith("on")) e.addEventListener(k.slice(2), v); else e.setAttribute(k, v);
+      if (v === undefined || v === null || v === false) continue;
+      if (k === "class") e.className = v; else if (k.startsWith("on")) e.addEventListener(k.slice(2), v); else e.setAttribute(k, v === true ? "" : v);
     }
     kids.flat().forEach(k => e.append(k)); return e;
   }
-  function doneOf(k) { return k === "spines" ? state.spinesTouched : state.mine[k]; }
+  function tabSmall(k) {
+    if (k === "size") return `${state.size.cw}·${state.size.bw}`;
+    if (k === "spines") return state.spinesTouched ? "✓ 완료" : "색·글자";
+    if (state.mine[k]) return "✓ 완료";
+    return state.sampleName ? "리센느 예시" : "예시 그림";
+  }
   function renderTabs() {
     tabsEl.replaceChildren(...TABS.map(([k, n]) => el("button", {
-      role: "tab", id: "tab-" + k, "aria-selected": String(state.sel === k), class: doneOf(k) ? "done" : "",
+      role: "tab", id: "tab-" + k, "aria-selected": String(state.sel === k),
+      class: (k === "spines" ? state.spinesTouched : state.mine[k]) ? "done" : "",
       onclick: () => select(k)
-    }, n, el("small", {}, doneOf(k) ? "✓ 완료" : (k === "spines" ? "색·글자" : (state.sampleName ? "리센느 예시" : "예시 그림"))))));
+    }, n, el("small", {}, tabSmall(k)))));
+    const c = state.size;
+    document.getElementById("sizeSummary").textContent = `앞커버 ${c.cw * 2}×${c.ch} · 뒷면 ${L.back.w}×${c.ch} · CD Ø${c.cdD} mm`;
   }
-  function select(k) { state.sel = k; buildControls(); render(); }
+  function select(k) { state.sel = k; if (state.textSel && !state.texts.some(t => t.id === state.textSel && t.panel === k)) state.textSel = null; buildControls(); render(); }
 
   function pickColor(img) {
     const c = document.createElement("canvas"); c.width = c.height = 24;
@@ -374,38 +464,82 @@ select { font: inherit; font-size: 15px; min-height: var(--tap); padding: 6px 8p
     const lum = (0.299 * r + 0.587 * gg + 0.114 * b) / 255;
     return { bg: "#" + [r, gg, b].map(v => v.toString(16).padStart(2, "0")).join(""), fg: lum > 0.6 ? "#1b1f2a" : "#ffffff" };
   }
-
-  function zoomBy(k, factor) { const f = state.fit[k]; f.z = Math.max(ZMIN, Math.min(ZMAX, f.z * factor)); clampPan(k); }
+  function zoomBy(k, f) { const ft = state.fit[k]; ft.z = Math.max(ZMIN, Math.min(ZMAX, ft.z * f)); clampPan(k); }
   function clampPan(k) { const f = state.fit[k]; f.ox = Math.max(-1, Math.min(1, f.ox)); f.oy = Math.max(-1, Math.min(1, f.oy)); }
-  function panBy(k, dxMm, dyMm) {
+  function panBy(k, dx, dy) {
     const img = state.img[k], f = state.fit[k], box = boxOf(k);
     const sc = Math.max(box.w / img.width, box.h / img.height) * f.z;
     const exX = (img.width * sc - box.w) / 2, exY = (img.height * sc - box.h) / 2;
-    if (exX > 0.001) f.ox += dxMm / exX;
-    if (exY > 0.001) f.oy += dyMm / exY;
+    if (exX > 0.001) f.ox += dx / exX;
+    if (exY > 0.001) f.oy += dy / exY;
     clampPan(k);
+  }
+  function panelSizeText(k) {
+    const c = state.size;
+    if (k === "cd") return `Ø${c.cdD}mm · 구멍 Ø${c.hole}mm`;
+    if (k === "back") return `${c.bw}×${c.ch}mm`;
+    return `${c.cw}×${c.ch}mm`;
   }
 
   function buildControls() {
     const k = state.sel;
-    if (k === "spines") { titleEl.replaceChildren("뒷면 접는 부분 ", el("span", {}, "왼쪽 5mm×2 · 오른쪽 5mm")); controls.replaceChildren(...spineControls()); return; }
-    const p = PANELS[k];
-    titleEl.replaceChildren(p.name + " ", el("span", {}, p.size));
-    const mine = state.mine[k];
+    if (k === "size") { titleEl.replaceChildren("크기 설정 ", el("span", {}, "단위 mm")); controls.replaceChildren(...sizeControls()); return; }
+    if (k === "spines") { titleEl.replaceChildren("뒷면 접는 부분 ", el("span", {}, `${state.size.fL1}+${state.size.fL2} · ${state.size.fR}mm`)); controls.replaceChildren(...spineControls()); return; }
+    titleEl.replaceChildren(PANEL_NAMES[k] + " ", el("span", {}, panelSizeText(k)));
     controls.replaceChildren(
       el("button", { class: "bigbtn", id: "pick-" + k, onclick: () => { fileInput.dataset.target = k; fileInput.click(); } },
-        mine ? "다른 그림으로 바꾸기" : "이 칸에 그림 넣기"),
+        state.mine[k] ? "다른 그림으로 바꾸기" : "이 칸에 그림 넣기"),
       el("ul", { class: "gesture" },
-        el("li", {}, "한 손가락으로 끌어 옮기기"), el("li", {}, "두 손가락으로 벌려 확대"), el("li", {}, "그림 파일을 창에 끌어다 놓기")),
+        el("li", {}, "한 손가락으로 끌어 옮기기"), el("li", {}, "두 손가락으로 벌려 확대"), el("li", {}, "글자를 누르면 글자만 옮겨져요")),
       el("div", { class: "tools" },
-        el("button", { class: "btn", "aria-label": "축소", onclick: () => { zoomBy(k, 1 / 1.15); render(); } }, el("span", { class: "ic" }, "−"), "작게"),
-        el("button", { class: "btn", "aria-label": "확대", onclick: () => { zoomBy(k, 1.15); render(); } }, el("span", { class: "ic" }, "+"), "크게"),
+        el("button", { class: "btn", "aria-label": "그림 축소", onclick: () => { zoomBy(k, 1 / 1.15); render(); } }, el("span", { class: "ic" }, "−"), "작게"),
+        el("button", { class: "btn", "aria-label": "그림 확대", onclick: () => { zoomBy(k, 1.15); render(); } }, el("span", { class: "ic" }, "+"), "크게"),
         el("button", { class: "btn", onclick: () => { Object.assign(state.fit[k], { z: 1, ox: 0, oy: 0 }); render(); } }, el("span", { class: "ic" }, "⟲"), "처음대로"),
         el("button", { class: "btn", onclick: () => { const f = state.fit[k]; f.ox = 0; f.oy = 0; render(); } }, el("span", { class: "ic" }, "◎"), "가운데")),
-      ...(k === "cd" ? [el("p", { class: "hint" }, "가운데 Ø5mm 구멍 자리는 항상 흰색으로 비워 둬요.")] : []),
+      ...textControls(k),
       ...(k === "front" ? [el("button", { class: "btn", onclick: () => { applyFrontColor(); setStatus("앞면 그림 색으로 접는 부분을 칠했어요."); } }, "앞면 그림 색으로 접는 부분 칠하기")] : [])
     );
   }
+
+  // ----- 글자 -----
+  function addText(k) {
+    const t = { id: state.nextId++, panel: k, text: "글자를 입력하세요", font: "IBM Plex Sans KR", size: Math.round(Math.min(cutOf(k).w, cutOf(k).h) * 0.12 * 2) / 2 || 4, color: "#ffffff", bold: true, outline: "", x: 0.5, y: k === "cd" ? 0.75 : 0.85 };
+    state.texts.push(t); state.textSel = t.id; buildControls(); render();
+    const inp = document.getElementById("t-text-" + t.id); if (inp) { inp.focus(); inp.select(); }
+  }
+  function textControls(k) {
+    const items = state.texts.filter(t => t.panel === k);
+    const out = [el("h3", { class: "sub" }, "글자"),
+      el("button", { class: "btn", onclick: () => addText(k) }, "+ 이 칸에 글자 추가")];
+    if (!items.length) out.push(el("p", { class: "hint" }, "제목, 곡 목록, 날짜처럼 그림 위에 얹을 글자를 넣을 수 있어요. 넣은 글자는 편집 창에서 끌어서 옮겨요."));
+    for (const t of items) {
+      const on = state.textSel === t.id;
+      const pick = () => { if (state.textSel !== t.id) { state.textSel = t.id; controls.querySelectorAll(".box[data-t]").forEach(n => n.classList.toggle("on", +n.dataset.t === t.id)); renderStage(); } };
+      const upd = () => { render(); };
+      const sizeR = el("input", { type: "range", id: "t-size-" + t.id, min: "1.5", max: "30", step: "0.5", value: String(t.size), "aria-label": "글자 크기",
+        oninput: e => { t.size = +e.target.value; sizeV.textContent = t.size + "mm"; upd(); }, onfocus: pick });
+      const sizeV = el("span", { class: "hint", style: "min-width:3.6em;font-family:var(--font-num)" }, t.size + "mm");
+      const fontS = el("select", { id: "t-font-" + t.id, "aria-label": "글꼴", onfocus: pick, onchange: e => { t.font = e.target.value; ensureFont(t).then(upd); } },
+        FONTS.map(([f, n]) => el("option", { value: f }, n)));
+      fontS.value = t.font;
+      const outlineS = el("select", { id: "t-out-" + t.id, "aria-label": "글자 테두리", onfocus: pick, onchange: e => { t.outline = e.target.value; upd(); } },
+        el("option", { value: "" }, "테두리 없음"), el("option", { value: "#000000" }, "검은 테두리"), el("option", { value: "#ffffff" }, "흰 테두리"));
+      outlineS.value = t.outline;
+      out.push(el("div", { class: "box" + (on ? " on" : ""), "data-t": String(t.id), onclick: pick },
+        el("input", { type: "text", id: "t-text-" + t.id, value: t.text, "aria-label": "글자 내용", onfocus: pick, oninput: e => { t.text = e.target.value || " "; upd(); } }),
+        el("div", { class: "inline" }, el("span", { class: "hint" }, "크기"), sizeR, sizeV),
+        el("div", { class: "inline" },
+          el("input", { type: "color", id: "t-color-" + t.id, value: t.color, "aria-label": "글자색", onfocus: pick, oninput: e => { t.color = e.target.value; upd(); } }),
+          el("button", { class: "btn", "aria-pressed": String(t.bold), onclick: e => { t.bold = !t.bold; e.currentTarget.setAttribute("aria-pressed", String(t.bold)); upd(); } }, el("b", {}, "굵게")),
+          el("div", { class: "grow" }, fontS)),
+        el("div", { class: "inline" },
+          el("div", { class: "grow" }, outlineS),
+          el("button", { class: "btn", onclick: () => { t.x = 0.5; upd(); } }, "가로 가운데"),
+          el("button", { class: "btn danger", onclick: () => { state.texts = state.texts.filter(x => x.id !== t.id); if (state.textSel === t.id) state.textSel = null; buildControls(); render(); } }, "지우기"))));
+    }
+    return out;
+  }
+  function ensureFont(t) { return document.fonts.load(fontOf(t, 20)).catch(() => {}); }
 
   function applyFrontColor() {
     if (!state.img.front) return;
@@ -414,23 +548,68 @@ select { font: inherit; font-size: 15px; min-height: var(--tap); padding: 6px 8p
     state.spinesTouched = true; render();
   }
 
+  // ----- 크기 -----
+  function sizeControls() {
+    const c = state.size;
+    const num = (key, label) => el("label", { class: "num" }, label,
+      el("input", { type: "number", id: "sz-" + key, inputmode: "decimal", min: String(LIMIT[key][0]), max: String(LIMIT[key][1]), step: "0.5", value: String(c[key]),
+        onchange: e => applySize(key, e.target) }));
+    const warnEl = el("p", { class: "warn", id: "sizeWarn", role: "alert" }, L.fits ? "" : "지금 크기로는 A4 한 장에 다 들어가지 않아요.");
+    return [
+      el("p", { class: "hint" }, "인쇄해서 재 보고 안 맞는 곳의 숫자를 고쳐요. 바꾸면 바로 배치가 다시 그려져요."),
+      el("div", { class: "box" }, el("h3", {}, "앞커버", el("span", {}, "두 칸 + 가운데 접음")),
+        el("div", { class: "grid2" }, num("cw", "칸 가로 (한 칸)"), num("ch", "세로 (뒷면과 같음)"))),
+      el("div", { class: "box" }, el("h3", {}, "뒷면", el("span", {}, `합계 ${c.fL1 + c.fL2 + c.bw + c.fR}mm`)),
+        el("div", { class: "grid2" }, num("fL1", "왼쪽 접힘 ① (바깥)"), num("fL2", "왼쪽 접힘 ②")),
+        el("div", { class: "grid2" }, num("bw", "그림 칸 가로"), num("fR", "오른쪽 접힘")),
+        el("p", { class: "hint" }, "접힘을 0으로 하면 그 칸이 없어져요.")),
+      el("div", { class: "box" }, el("h3", {}, "CD", el("span", {}, "원")),
+        el("div", { class: "grid2" }, num("cdD", "지름"), num("hole", "가운데 구멍 지름"))),
+      el("div", { class: "box" }, el("h3", {}, "여백", el("span", {}, "자르는 선 밖")),
+        el("div", { class: "grid2" }, num("bleed", "그림을 더 그릴 폭"))),
+      warnEl,
+      el("button", { class: "btn", onclick: () => { state.size = { ...DEFAULT_SIZE }; relayout(); buildControls(); render(); setStatus("크기를 기본값으로 되돌렸어요."); } }, "기본 크기로 되돌리기 (커버 40×40 · 뒷면 5+5+50+5 · CD 39)")
+    ];
+  }
+  function applySize(key, input) {
+    const [lo, hi] = LIMIT[key];
+    let v = parseFloat(String(input.value).replace(",", "."));
+    if (!Number.isFinite(v)) { input.value = state.size[key]; return; }
+    v = Math.max(lo, Math.min(hi, Math.round(v * 2) / 2));
+    const prev = { ...state.size };
+    state.size[key] = v;
+    const next = layout(state.size);
+    if (key === "hole" && v >= state.size.cdD) { state.size = prev; input.value = prev[key]; setStatus("구멍은 CD 지름보다 작아야 해요."); return; }
+    if (!next.fits) {
+      state.size = prev; input.value = prev[key];
+      const w = document.getElementById("sizeWarn"); if (w) w.textContent = `${v}mm로 하면 A4 한 장에 다 들어가지 않아요. 더 작은 값을 넣어 주세요.`;
+      return;
+    }
+    input.value = v; relayout(); buildControls(); render();
+    const f = document.getElementById("sz-" + key); if (f) f.focus();
+    setStatus("크기를 바꿨어요.");
+  }
+  function relayout() { L = layout(state.size); if (!L.strips[state.spineSel]) state.spineSel = Object.keys(L.strips)[0] || "foldL2"; }
+
+  // ----- 접는 부분 -----
   function spineControls() {
+    const keys = Object.keys(L.strips);
     const out = [el("p", { class: "hint" }, "케이스에 끼우면 옆에서 보이는 자리예요. 편집 창에서 칸을 눌러 고르고 색과 글자를 넣어요.")];
-    for (const [k, st] of Object.entries(STRIPS)) {
-      const v = state.strips[k];
+    if (!keys.length) out.push(el("p", { class: "hint" }, "크기 설정에서 접힘이 모두 0이라 접는 칸이 없어요."));
+    for (const k of keys) {
+      const v = state.strips[k], wmm = state.size[k === "foldL1" ? "fL1" : k === "foldL2" ? "fL2" : "fR"];
       const sel = () => { if (state.spineSel !== k) { state.spineSel = k; markStrip(); renderStage(); } };
       const touched = () => { state.spinesTouched = true; render(); };
-      const t = el("input", { type: "text", id: "txt-" + k, value: v.text, placeholder: "예: 가수 이름 · 앨범 이름",
-        onfocus: sel, oninput: e => { v.text = e.target.value; touched(); } });
-      const bg = el("input", { type: "color", id: "bg-" + k, value: v.bg, "aria-label": st.name + " 배경색", onfocus: sel, oninput: e => { v.bg = e.target.value; touched(); } });
-      const fg = el("input", { type: "color", id: "fg-" + k, value: v.fg, "aria-label": st.name + " 글자색", onfocus: sel, oninput: e => { v.fg = e.target.value; touched(); } });
-      const dir = el("select", { id: "dir-" + k, "aria-label": st.name + " 글자 방향", onfocus: sel, onchange: e => { v.dir = e.target.value; touched(); } },
+      const dir = el("select", { id: "dir-" + k, "aria-label": STRIP_NAMES[k] + " 글자 방향", onfocus: sel, onchange: e => { v.dir = e.target.value; touched(); } },
         el("option", { value: "down" }, "위→아래"), el("option", { value: "up" }, "아래→위"));
       dir.value = v.dir;
-      out.push(el("div", { class: "strip" + (state.spineSel === k ? " on" : ""), "data-strip": k, onclick: sel },
-        el("h3", {}, st.name, el("span", {}, st.range)),
-        t,
-        el("div", { class: "strip-row" }, el("span", { class: "hint" }, "배경"), bg, el("span", { class: "hint" }, "글자"), fg, dir)));
+      out.push(el("div", { class: "box" + (state.spineSel === k ? " on" : ""), "data-strip": k, onclick: sel },
+        el("h3", {}, STRIP_NAMES[k], el("span", {}, wmm + "mm")),
+        el("input", { type: "text", id: "txt-" + k, value: v.text, placeholder: "예: 가수 이름 · 앨범 이름", onfocus: sel, oninput: e => { v.text = e.target.value; touched(); } }),
+        el("div", { class: "inline" },
+          el("span", { class: "hint" }, "배경"), el("input", { type: "color", id: "bg-" + k, value: v.bg, "aria-label": STRIP_NAMES[k] + " 배경색", onfocus: sel, oninput: e => { v.bg = e.target.value; touched(); } }),
+          el("span", { class: "hint" }, "글자"), el("input", { type: "color", id: "fg-" + k, value: v.fg, "aria-label": STRIP_NAMES[k] + " 글자색", onfocus: sel, oninput: e => { v.fg = e.target.value; touched(); } }),
+          el("div", { class: "grow" }, dir))));
     }
     out.push(el("div", { class: "row2" },
       el("button", { class: "btn", onclick: () => {
@@ -441,7 +620,7 @@ select { font: inherit; font-size: 15px; min-height: var(--tap); padding: 6px 8p
       el("button", { class: "btn", onclick: () => { applyFrontColor(); buildControls(); render(); } }, "앞면 그림 색으로")));
     return out;
   }
-  function markStrip() { controls.querySelectorAll(".strip").forEach(n => n.classList.toggle("on", n.dataset.strip === state.spineSel)); }
+  function markStrip() { controls.querySelectorAll(".box[data-strip]").forEach(n => n.classList.toggle("on", n.dataset.strip === state.spineSel)); }
 
   // ---------- 파일 ----------
   function loadFile(k, file) {
@@ -450,7 +629,7 @@ select { font: inherit; font-size: 15px; min-height: var(--tap); padding: 6px 8p
     img.onload = () => {
       state.img[k] = img; state.mine[k] = true; Object.assign(state.fit[k], { z: 1, ox: 0, oy: 0 });
       state.sel = k; buildControls(); render();
-      setStatus(`${PANELS[k].name}에 그림을 넣었어요. 끌거나 두 손가락으로 맞춰 보세요.`);
+      setStatus(`${PANEL_NAMES[k]}에 그림을 넣었어요. 끌거나 두 손가락으로 맞춰 보세요.`);
     };
     img.onerror = () => setStatus("그림을 열지 못했어요. 다른 파일로 해 보세요.");
     img.src = URL.createObjectURL(file);
@@ -459,15 +638,15 @@ select { font: inherit; font-size: 15px; min-height: var(--tap); padding: 6px 8p
   const dz = document.getElementById("dropzone");
   dz.addEventListener("dragover", e => { e.preventDefault(); dz.classList.add("over"); });
   dz.addEventListener("dragleave", () => dz.classList.remove("over"));
-  dz.addEventListener("drop", e => { e.preventDefault(); dz.classList.remove("over"); if (PANELS[state.sel]) loadFile(state.sel, e.dataTransfer.files[0]); });
+  dz.addEventListener("drop", e => { e.preventDefault(); dz.classList.remove("over"); if (isPanel(state.sel)) loadFile(state.sel, e.dataTransfer.files[0]); });
 
-  // ---------- 전체 배치: 누르면 고르기 (마우스는 끌어서 옮기기도) ----------
-  function prevMm(e) { const r = preview.getBoundingClientRect(); return { x: VIEW.x + (e.clientX - r.left) / r.width * VIEW.w, y: VIEW.y + (e.clientY - r.top) / r.height * VIEW.h }; }
+  // ---------- 전체 배치: 누르면 고르기 ----------
+  function prevMm(e) { const r = preview.getBoundingClientRect(), V = L.view; return { x: V.x + (e.clientX - r.left) / r.width * V.w, y: V.y + (e.clientY - r.top) / r.height * V.h }; }
+  const inR = (m, r) => m.x >= r.x && m.x <= r.x + r.w && m.y >= r.y && m.y <= r.y + r.h;
   function hit(m) {
-    const inR = r => m.x >= r.x && m.x <= r.x + r.w && m.y >= r.y && m.y <= r.y + r.h;
-    if (Math.hypot(m.x - CD.cx, m.y - CD.cy) <= CD.r + 1) return "cd";
-    for (const k of ["inside", "front", "back"]) if (inR(PANELS[k].rect)) return k;
-    for (const [k, st] of Object.entries(STRIPS)) if (inR({ x: st.x, y: BACK.y, w: st.w, h: BACK.h })) return "spines:" + k;
+    if (Math.hypot(m.x - L.cd.cx, m.y - L.cd.cy) <= L.cd.r + 1) return "cd";
+    for (const k of ["inside", "front", "back"]) if (inR(m, L.panels[k].rect)) return k;
+    for (const [k, st] of Object.entries(L.strips)) if (inR(m, st.rect)) return "spines:" + k;
     return null;
   }
   let pdrag = null;
@@ -481,9 +660,9 @@ select { font: inherit; font-size: 15px; min-height: var(--tap); padding: 6px 8p
   preview.addEventListener("pointerup", () => { pdrag = null; });
   preview.addEventListener("pointercancel", () => { pdrag = null; });
 
-  // ---------- 편집 창: 끌기 · 두 손가락 확대 · 휠 · 키보드 ----------
-  const pts = new Map(); let gest = null;
-  function stageMm(cx, cy) { const r = stage.getBoundingClientRect(); return { x: stageRegion.x + (cx - r.left) / r.width * stageRegion.w, y: stageRegion.y + (cy - r.top) / r.height * stageRegion.h }; }
+  // ---------- 편집 창: 끌기 · 두 손가락 확대 · 휠 · 키보드 (글자를 잡으면 글자) ----------
+  const pts = new Map(); let gest = null, grabText = null;
+  function stageMm(cx, cy) { const r = stage.getBoundingClientRect(), R = stageRegion; return { x: R.x + (cx - r.left) / r.width * R.w, y: R.y + (cy - r.top) / r.height * R.h }; }
   function gestureState() {
     const a = [...pts.values()];
     if (a.length === 1) return { mid: stageMm(a[0].x, a[0].y), dist: 0 };
@@ -491,13 +670,18 @@ select { font: inherit; font-size: 15px; min-height: var(--tap); padding: 6px 8p
     return { mid: stageMm(mx, my), dist: Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y) };
   }
   stage.addEventListener("pointerdown", e => {
-    const k = state.sel;
+    const k = state.sel, m = stageMm(e.clientX, e.clientY);
+    if (k === "size") return;
     if (k === "spines") {
-      const m = stageMm(e.clientX, e.clientY);
-      for (const [sk, st] of Object.entries(STRIPS)) if (m.x >= st.x && m.x <= st.x + st.w) { state.spineSel = sk; markStrip(); renderStage(); const inp = document.getElementById("txt-" + sk); if (inp && e.pointerType === "mouse") inp.focus(); }
+      for (const [sk, st] of Object.entries(L.strips)) if (m.x >= st.rect.x && m.x <= st.rect.x + st.rect.w) { state.spineSel = sk; markStrip(); renderStage(); }
       return;
     }
-    if (!state.img[k]) return;
+    if (pts.size === 0) {
+      const tb = [...textBoxes].reverse().find(b => b.panel === k && inR(m, b));
+      grabText = tb ? state.texts.find(t => t.id === tb.id) : null;
+      if (grabText && state.textSel !== grabText.id) { state.textSel = grabText.id; buildControls(); }
+      if (!grabText && !state.img[k]) return;
+    }
     stage.setPointerCapture(e.pointerId); pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
     gest = gestureState(); stage.classList.add("dragging");
   });
@@ -506,29 +690,40 @@ select { font: inherit; font-size: 15px; min-height: var(--tap); padding: 6px 8p
     pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
     const k = state.sel, now = gestureState();
     if (gest && now && pts.size === (gest.dist ? 2 : 1)) {
-      if (now.dist && gest.dist) zoomBy(k, now.dist / gest.dist);
-      panBy(k, now.mid.x - gest.mid.x, now.mid.y - gest.mid.y);
+      const dx = now.mid.x - gest.mid.x, dy = now.mid.y - gest.mid.y;
+      if (grabText) {
+        const c = cutOf(k);
+        grabText.x = Math.max(0, Math.min(1, grabText.x + dx / c.w));
+        grabText.y = Math.max(0, Math.min(1, grabText.y + dy / c.h));
+        if (now.dist && gest.dist) { grabText.size = Math.max(1.5, Math.min(30, Math.round(grabText.size * now.dist / gest.dist * 10) / 10)); const sv = document.getElementById("t-size-" + grabText.id); if (sv) sv.value = grabText.size; }
+      } else {
+        if (now.dist && gest.dist) zoomBy(k, now.dist / gest.dist);
+        panBy(k, dx, dy);
+      }
       renderPreview(); renderStage();
     }
     gest = now;
   });
-  const lift = e => { pts.delete(e.pointerId); gest = pts.size ? gestureState() : null; if (!pts.size) stage.classList.remove("dragging"); };
+  const lift = e => { pts.delete(e.pointerId); gest = pts.size ? gestureState() : null; if (!pts.size) { stage.classList.remove("dragging"); if (grabText) { grabText = null; buildControls(); render(); } } };
   stage.addEventListener("pointerup", lift); stage.addEventListener("pointercancel", lift);
-  stage.addEventListener("wheel", e => { const k = state.sel; if (!PANELS[k] || !state.img[k]) return; e.preventDefault(); zoomBy(k, Math.exp(-e.deltaY * 0.0015)); renderPreview(); renderStage(); }, { passive: false });
+  stage.addEventListener("wheel", e => { const k = state.sel; if (!isPanel(k) || !state.img[k]) return; e.preventDefault(); zoomBy(k, Math.exp(-e.deltaY * 0.0015)); renderPreview(); renderStage(); }, { passive: false });
   stage.addEventListener("keydown", e => {
-    const k = state.sel; if (!PANELS[k] || !state.img[k]) return;
+    const k = state.sel; if (!isPanel(k)) return;
     const step = e.shiftKey ? 2 : 0.5, map = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
-    if (map[e.key]) { e.preventDefault(); panBy(k, ...map[e.key]); render(); }
-    else if (e.key === "+" || e.key === "=") { zoomBy(k, 1.1); render(); }
-    else if (e.key === "-") { zoomBy(k, 1 / 1.1); render(); }
+    const t = state.texts.find(x => x.id === state.textSel && x.panel === k);
+    if (map[e.key]) {
+      e.preventDefault(); const [dx, dy] = map[e.key];
+      if (t) { const c = cutOf(k); t.x = Math.max(0, Math.min(1, t.x + dx / c.w)); t.y = Math.max(0, Math.min(1, t.y + dy / c.h)); }
+      else if (state.img[k]) panBy(k, dx, dy);
+      render();
+    } else if ((e.key === "+" || e.key === "=") && state.img[k]) { zoomBy(k, 1.1); render(); }
+    else if (e.key === "-" && state.img[k]) { zoomBy(k, 1 / 1.1); render(); }
+    else if (e.key === "Escape") { state.textSel = null; buildControls(); render(); }
   });
   window.addEventListener("resize", () => renderStage());
 
   // ---------- PDF ----------
-  const statusEl = document.getElementById("status");
-  function setStatus(t) { statusEl.textContent = t; }
   document.getElementById("labels").addEventListener("change", e => { state.labels = e.target.checked; render(); });
-  // claude.ai 안에서는 downloads 기능으로, 그 밖(깃허브 페이지 등)에서는 브라우저 내려받기로 저장
   const inClaude = !!(window.claude && window.claude.use);
   let downloads = null; const saveBtn = document.getElementById("savePdf");
   if (inClaude) (async () => {
@@ -537,7 +732,7 @@ select { font: inherit; font-size: 15px; min-height: var(--tap); padding: 6px 8p
   })();
   async function makePdfBlob() {
     const s = 12, cv = document.createElement("canvas"); cv.width = A4.w * s; cv.height = A4.h * s;
-    drawSheet(cv.getContext("2d"), s);
+    drawSheet(cv.getContext("2d"), s, false);
     const { jsPDF } = window.jspdf, doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
     doc.setProperties({ title: "미니 CD 케이스 인쇄용 (A4 실제 크기)" });
     doc.addImage(cv.toDataURL("image/jpeg", 0.95), "JPEG", 0, 0, A4.w, A4.h);
@@ -551,9 +746,10 @@ select { font: inherit; font-size: 15px; min-height: var(--tap); padding: 6px 8p
   saveBtn.addEventListener("click", async () => {
     if (inClaude && !downloads) return;
     if (!window.jspdf) { setStatus("PDF 도구를 불러오지 못했어요. 페이지를 새로 열어 주세요."); return; }
-    const left = ["front", "inside", "back", "cd"].filter(k => !state.mine[k]).map(k => PANELS[k].name);
+    const left = ["front", "inside", "back", "cd"].filter(k => !state.mine[k]).map(k => PANEL_NAMES[k]);
     saveBtn.disabled = true; setStatus("PDF를 만드는 중이에요…");
     try {
+      await Promise.all(state.texts.map(ensureFont));
       const blob = await makePdfBlob(), name = "CD케이스_A4_실제크기.pdf";
       if (downloads) await downloads.save({ filename: name, data: blob }); else browserSave(blob, name);
       setStatus("PDF를 저장했어요. 인쇄할 때 배율 100%로 맞춰 주세요." + (left.length ? ` (예시 그림 그대로인 칸: ${left.join(", ")})` : ""));
@@ -564,6 +760,7 @@ select { font: inherit; font-size: 15px; min-height: var(--tap); padding: 6px 8p
   });
 
   async function start() {
+    relayout();
     try { await Promise.all(['700 20px "IBM Plex Sans KR"', '400 20px "IBM Plex Sans KR"', '700 20px "Space Grotesk"'].map(f => document.fonts.load(f))); } catch (_) {}
     await loadSamples(); buildControls(); render();
     if (state.sampleName) setStatus("지금은 리센느 PULSE 예시 그림이 들어 있어요. 칸마다 내 그림으로 바꿔 넣으면 돼요.");
